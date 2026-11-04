@@ -79,6 +79,15 @@ button.opt:disabled{cursor:default}
 @keyframes bounce{to{transform:translateY(-8px) rotate(6deg)}}
 .big{font-size:34px;font-weight:700;margin:4px 0}
 .res p{color:var(--muted);margin:4px 0 18px}
+.review{margin-top:22px;padding-top:18px;border-top:1px solid var(--border);text-align:left}
+.review h3{margin:0;font-size:16px}
+.review-list{max-height:300px;overflow-y:auto;overscroll-behavior:contain;margin:10px 0 0;padding-left:28px}
+.review-list li+li{margin-top:10px}
+.review-list h4{margin:0 0 6px;font-size:14px}
+.review-list p{margin:4px 0;color:var(--text);font-size:14px}
+.review-list .wrong-answer{color:var(--bad)}
+.review-list .correct-answer{color:var(--ok)}
+.review-list .explanation{color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -99,6 +108,10 @@ button.opt:disabled{cursor:default}
       <div class="big" id="final"></div>
       <h2 id="title" style="font-size:18px;margin:0"></h2>
       <p id="msg"></p>
+      <section class="review" id="review" aria-labelledby="review-title" hidden>
+        <h3 id="review-title">틀린 문제 복습</h3>
+        <ol class="review-list" id="review-list" aria-labelledby="review-title" tabindex="0"></ol>
+      </section>
       <button class="next show" id="again">다시 하기</button>
     </section>
   </div>
@@ -117,7 +130,7 @@ const Q=[
 ["명왕성을 최초로 근접 통과한 탐사선은?",["보이저 2호","돈","주노","뉴호라이즌스"],3,"뉴호라이즌스는 2015년에 명왕성을 통과했습니다."]
 ];
 const $=id=>document.getElementById(id);
-let i=0,score=0,locked=false;
+let i=0,score=0,locked=false,wrongAnswers=[];
 function show(){
   locked=false;const [q,o]=Q[i];
   $("count").textContent=`문제 ${i+1} / ${Q.length}`;
@@ -132,7 +145,7 @@ function pick(k,btn){
   const [,,a,why]=Q[i];const bs=[...$("opts").children];
   bs.forEach(b=>b.disabled=true);
   if(k===a){score++;btn.classList.add("correct");$("fb").className="fb ok";$("fb").textContent="✅ 정답! "+why;}
-  else{btn.classList.add("wrong");bs[a].classList.add("correct");$("fb").className="fb bad";$("fb").textContent="❌ 아쉬워요. "+why;}
+  else{wrongAnswers.push({number:i+1,question:Q[i][0],selected:Q[i][1][k],correct:Q[i][1][a],explanation:why});btn.classList.add("wrong");bs[a].classList.add("correct");$("fb").className="fb bad";$("fb").textContent="❌ 아쉬워요. "+why;}
   $("score").textContent=score;setBar(i+1);
   $("next").textContent=i===Q.length-1?"결과 보기":"다음 문제";
   $("next").classList.add("show");$("next").focus();
@@ -140,6 +153,22 @@ function pick(k,btn){
 $("next").onclick=()=>{i++;i<Q.length?show():finish()};
 function finish(){
   $("quiz").style.display="none";$("res").style.display="block";
+  const list=$("review-list");
+  list.innerHTML="";
+  $("review").hidden=wrongAnswers.length===0;
+  wrongAnswers.forEach(({number,question,selected,correct,explanation})=>{
+    const item=document.createElement("li");
+    const heading=document.createElement("h4");heading.textContent=`문제 ${number}. ${question}`;
+    item.appendChild(heading);
+    [["내가 고른 답",selected,"wrong-answer"],["정답",correct,"correct-answer"],["해설",explanation,"explanation"]].forEach(([label,value,className])=>{
+      const line=document.createElement("p");
+      line.className=className;
+      const strong=document.createElement("strong");strong.textContent=label+": ";
+      line.append(strong,document.createTextNode(value));
+      item.appendChild(line);
+    });
+    list.appendChild(item);
+  });
   const r=[[10,"🏆","임무 사령관!","완벽해요. 휴스턴이 자랑스러워합니다."],[8,"🚀","우주비행사 감","발사 준비 완료!"],[5,"🌍","궤도 안착 중","탄탄해요, 더 탐험해 보세요."],[0,"🛰️","아직 훈련 중","계속 탐험하고 다시 도전해 보세요."]].find(x=>score>=x[0]);
   $("res").classList.toggle("great",score>=8);
   if(score>=8)celebrate();
@@ -158,7 +187,7 @@ function celebrate(){
 document.addEventListener("keydown",e=>{
   const n=+e.key;if(n>=1&&n<=4&&$("quiz").style.display!=="none"){const b=$("opts").children[n-1];if(b&&!b.disabled)b.click()}
 });
-$("again").onclick=()=>{i=0;score=0;$("score").textContent=0;setBar(0);$("res").style.display="none";$("quiz").style.display="block";show()};
+$("again").onclick=()=>{i=0;score=0;wrongAnswers=[];$("review").hidden=true;$("review-list").innerHTML="";$("score").textContent=0;setBar(0);$("res").style.display="none";$("quiz").style.display="block";show()};
 show();
 </script>
 </body>
