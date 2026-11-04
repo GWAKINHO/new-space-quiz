@@ -64,7 +64,7 @@ h1{font-size:20px;margin:0 0 16px;text-align:center}
 button.opt{font:inherit;text-align:left;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);
   background:var(--card);color:var(--text);cursor:pointer;transition:transform .12s,border-color .12s,background .2s}
 button.opt:hover:not(:disabled){border-color:var(--accent);transform:translateY(-1px)}
-button.opt:focus-visible,.next:focus-visible{outline:3px solid var(--accent);outline-offset:3px;
+button.opt:focus-visible,.next:focus-visible,.copy:focus-visible{outline:3px solid var(--accent);outline-offset:3px;
   box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 25%,transparent)}
 button.opt:focus-visible{background:var(--accent-soft)}
 button.opt:disabled{cursor:default}
@@ -74,13 +74,17 @@ button.opt:disabled{cursor:default}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
 .fb{min-height:44px;margin-top:14px;font-size:14px;color:var(--muted)}
 .fb.ok{color:var(--ok)}.fb.bad{color:var(--bad)}
-.next{margin-top:6px;font:inherit;font-weight:600;width:100%;padding:12px;border:0;border-radius:10px;background:var(--accent);color:var(--on-accent);cursor:pointer;display:none}
+.next,.copy{margin-top:6px;font:inherit;font-weight:600;width:100%;padding:12px;border:0;border-radius:10px;background:var(--accent);color:var(--on-accent);cursor:pointer}
+.next{display:none}
+.copy{border:1.5px solid var(--border);background:var(--card);color:var(--accent)}
 .next.show{display:block;animation:pop .3s}
 .res{text-align:center;display:none}
 .emoji{font-size:64px;animation:bounce 1s infinite alternate}
 @keyframes bounce{to{transform:translateY(-8px) rotate(6deg)}}
 .big{font-size:34px;font-weight:700;margin:4px 0}
 .res p{color:var(--muted);margin:4px 0 18px}
+.copy-status{min-height:24px;margin:8px 0;color:var(--muted)}
+.copy-status.success{color:var(--ok)}.copy-status.error{color:var(--bad)}
 .review{margin-top:22px;padding-top:18px;border-top:1px solid var(--border);text-align:left}
 .review h3{margin:0;font-size:16px}
 .review-list{max-height:300px;overflow-y:auto;overscroll-behavior:contain;margin:10px 0 0;padding-left:28px}
@@ -115,6 +119,8 @@ button.opt:disabled{cursor:default}
         <p class="record" id="best"></p>
         <p class="record" id="new-record" hidden>🎉 새 기록!</p>
       </div>
+      <button class="copy" id="copy-score">점수 복사</button>
+      <p class="copy-status" id="copy-status" aria-live="polite" aria-atomic="true"></p>
       <section class="review" id="review" aria-labelledby="review-title" hidden>
         <h3 id="review-title">틀린 문제 복습</h3>
         <ol class="review-list" id="review-list" aria-labelledby="review-title" tabindex="0"></ol>
@@ -249,6 +255,19 @@ function restart(){
   prepareQuiz();show();
 }
 $("again").onclick=restart;
+$("copy-score").onclick=async()=>{
+  const status=$("copy-status");
+  status.className="copy-status";
+  try{
+    if(!navigator.clipboard?.writeText)throw new Error();
+    await navigator.clipboard.writeText(`우주 탐사 퀴즈 ${score} / ${quizQuestions.length}점!`);
+    status.textContent="복사했어요!";
+    status.classList.add("success");
+  }catch{
+    status.textContent="복사하지 못했어요. 클립보드 기능을 사용할 수 없습니다.";
+    status.classList.add("error");
+  }
+};
 prepareQuiz();
 show();
 </script>
