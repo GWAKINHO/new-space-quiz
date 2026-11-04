@@ -78,6 +78,14 @@ button.opt:disabled{cursor:default}
 .fb.ok{color:var(--ok)}.fb.bad{color:var(--bad)}
 .next{margin-top:6px;font:inherit;font-weight:600;width:100%;padding:12px;border:0;border-radius:10px;background:var(--accent);color:var(--on-accent);cursor:pointer;display:none}
 .next.show{display:block;animation:pop .3s}
+.difficulty-list{display:grid;gap:10px}
+.difficulty-button{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px;border:1.5px solid var(--border);
+  border-radius:10px;background:var(--card);color:var(--text);font:inherit;text-align:left;cursor:pointer}
+.difficulty-button:hover{border-color:var(--accent);background:var(--accent-soft)}
+.difficulty-button:focus-visible{outline:3px solid var(--accent);outline-offset:3px;
+  box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 25%,transparent)}
+.difficulty-button strong{font-size:16px}
+.difficulty-button span{color:var(--muted);font-size:14px}
 .copy-button{margin-top:6px;font:inherit;font-weight:600;width:100%;padding:12px;border:1px solid var(--accent);border-radius:10px;background:var(--accent-soft);color:var(--text);cursor:pointer}
 .copy-button:hover{border-color:var(--accent);background:var(--card)}
 .copy-status{min-height:1.5em;margin:4px 0 8px;color:var(--muted);font-size:14px}
@@ -104,7 +112,16 @@ button.opt:disabled{cursor:default}
 <main>
   <h1>🚀 우주 탐사 퀴즈</h1>
   <div class="card">
-    <section id="quiz">
+    <section id="start" aria-labelledby="start-title">
+      <h2 id="start-title" class="q">난이도를 선택해 주세요</h2>
+      <p class="fb">난이도에 따라 문제마다 제한 시간이 달라집니다.</p>
+      <div class="difficulty-list" role="group" aria-label="퀴즈 난이도">
+        <button class="difficulty-button" type="button" data-difficulty="easy"><strong>쉬움</strong><span>문제당 20초</span></button>
+        <button class="difficulty-button" type="button" data-difficulty="normal"><strong>보통</strong><span>문제당 15초</span></button>
+        <button class="difficulty-button" type="button" data-difficulty="hard"><strong>어려움</strong><span>문제당 10초</span></button>
+      </div>
+    </section>
+    <section id="quiz" style="display:none">
       <div class="top"><span id="count">문제 1 / 10</span><span class="timer" id="timer" role="timer" aria-label="남은 시간" aria-live="off"></span><span class="score">점수: <b id="score">0</b></span></div>
       <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" id="barwrap"><i id="bar"></i></div>
       <p class="q" id="q"></p>
@@ -146,8 +163,13 @@ const Q=[
 ];
 const $=id=>document.getElementById(id);
 let i=0,score=0,locked=false,quizQuestions=[],wrongAnswers=[];
-const TIME_LIMIT=15;
-let timerInterval=null,timeRemaining=TIME_LIMIT;
+const DIFFICULTIES={
+  easy:{label:"쉬움",timeLimit:20},
+  normal:{label:"보통",timeLimit:15},
+  hard:{label:"어려움",timeLimit:10}
+};
+let selectedDifficulty=null;
+let timerInterval=null,timeRemaining=0;
 const BEST_SCORE_KEY="spaceQuizBestScore";
 let bestScore=0;
 try{
@@ -173,7 +195,7 @@ function prepareQuiz(){
 function show(){
   stopTimer();
   locked=false;const [q,o]=quizQuestions[i];
-  $("count").textContent=`문제 ${i+1} / ${quizQuestions.length}`;
+  $("count").textContent=`${selectedDifficulty.label} · 문제 ${i+1} / ${quizQuestions.length}`;
   $("q").textContent=q;$("fb").textContent="";$("fb").className="fb";
   $("next").classList.remove("show");
   $("opts").innerHTML="";
@@ -187,7 +209,7 @@ function updateTimer(){
   $("timer").classList.toggle("urgent",timeRemaining<=5);
 }
 function startTimer(){
-  timeRemaining=TIME_LIMIT;updateTimer();
+  timeRemaining=selectedDifficulty.timeLimit;updateTimer();
   timerInterval=setInterval(()=>{
     timeRemaining--;updateTimer();
     if(timeRemaining<=0){stopTimer();pick(null,null,true)}
@@ -267,16 +289,27 @@ document.addEventListener("keydown",e=>{
 });
 function restart(){
   stopTimer();
-  i=0;score=0;wrongAnswers=[];$("review").hidden=true;$("review-list").innerHTML="";
+  i=0;score=0;wrongAnswers=[];selectedDifficulty=null;$("review").hidden=true;$("review-list").innerHTML="";
   $("copy-status").className="copy-status";$("copy-status").textContent="";
   $("score").textContent=0;setBar(0);
-  $("res").style.display="none";$("quiz").style.display="block";
-  prepareQuiz();show();
+  $("timer").textContent="";$("timer").classList.remove("urgent");
+  $("res").style.display="none";$("quiz").style.display="none";$("start").style.display="block";
+  document.querySelector(".difficulty-button").focus();
 }
+function startQuiz(level){
+  selectedDifficulty=DIFFICULTIES[level];
+  if(!selectedDifficulty)return;
+  i=0;score=0;wrongAnswers=[];
+  prepareQuiz();
+  $("score").textContent=score;setBar(0);
+  $("start").style.display="none";$("quiz").style.display="block";
+  show();$("opts").firstElementChild.focus();
+}
+document.querySelectorAll("[data-difficulty]").forEach(button=>{
+  button.onclick=()=>startQuiz(button.dataset.difficulty);
+});
 $("again").onclick=restart;
 $("copy-score").onclick=copyScore;
-prepareQuiz();
-show();
 </script>
 </body>
 </html>
