@@ -117,34 +117,49 @@ const Q=[
 ["명왕성을 최초로 근접 통과한 탐사선은?",["보이저 2호","돈","주노","뉴호라이즌스"],3,"뉴호라이즌스는 2015년에 명왕성을 통과했습니다."]
 ];
 const $=id=>document.getElementById(id);
-let i=0,score=0,locked=false;
+let i=0,score=0,locked=false,quizQuestions=[];
+function shuffle(items){
+  for(let n=items.length-1;n>0;n--){
+    const k=Math.floor(Math.random()*(n+1));
+    [items[n],items[k]]=[items[k],items[n]];
+  }
+  return items;
+}
+function prepareQuiz(){
+  quizQuestions=Q.map(([question,options,correctIndex,explanation])=>{
+    const shuffledOptions=shuffle(options.map((text,index)=>({text,index})));
+    return [question,shuffledOptions.map(option=>option.text),
+      shuffledOptions.findIndex(option=>option.index===correctIndex),explanation];
+  });
+  shuffle(quizQuestions);
+}
 function show(){
-  locked=false;const [q,o]=Q[i];
-  $("count").textContent=`문제 ${i+1} / ${Q.length}`;
+  locked=false;const [q,o]=quizQuestions[i];
+  $("count").textContent=`문제 ${i+1} / ${quizQuestions.length}`;
   $("q").textContent=q;$("fb").textContent="";$("fb").className="fb";
   $("next").classList.remove("show");
   $("opts").innerHTML="";
   o.forEach((t,k)=>{const b=document.createElement("button");b.className="opt";b.textContent=t;b.onclick=()=>pick(k,b);$("opts").appendChild(b)});
 }
-function setBar(n){$("bar").style.width=n/Q.length*100+"%";$("barwrap").setAttribute("aria-valuenow",n)}
+function setBar(n){$("bar").style.width=n/quizQuestions.length*100+"%";$("barwrap").setAttribute("aria-valuenow",n)}
 function pick(k,btn){
   if(locked)return;locked=true;
-  const [,,a,why]=Q[i];const bs=[...$("opts").children];
+  const [,,a,why]=quizQuestions[i];const bs=[...$("opts").children];
   bs.forEach(b=>b.disabled=true);
   if(k===a){score++;btn.classList.add("correct");$("fb").className="fb ok";$("fb").textContent="✅ 정답! "+why;}
   else{btn.classList.add("wrong");bs[a].classList.add("correct");$("fb").className="fb bad";$("fb").textContent="❌ 아쉬워요. "+why;}
   $("score").textContent=score;setBar(i+1);
-  $("next").textContent=i===Q.length-1?"결과 보기":"다음 문제";
+  $("next").textContent=i===quizQuestions.length-1?"결과 보기":"다음 문제";
   $("next").classList.add("show");$("next").focus();
 }
-$("next").onclick=()=>{i++;i<Q.length?show():finish()};
+$("next").onclick=()=>{i++;i<quizQuestions.length?show():finish()};
 function finish(){
   $("quiz").style.display="none";$("res").style.display="block";
   const r=[[10,"🏆","임무 사령관!","완벽해요. 휴스턴이 자랑스러워합니다."],[8,"🚀","우주비행사 감","발사 준비 완료!"],[5,"🌍","궤도 안착 중","탄탄해요, 더 탐험해 보세요."],[0,"🛰️","아직 훈련 중","계속 탐험하고 다시 도전해 보세요."]].find(x=>score>=x[0]);
   $("res").classList.toggle("great",score>=8);
   if(score>=8)celebrate();
   $("again").focus();
-  $("emoji").textContent=r[1];$("final").textContent=`${score} / ${Q.length}`;$("title").textContent=r[2];$("msg").textContent=r[3];
+  $("emoji").textContent=r[1];$("final").textContent=`${score} / ${quizQuestions.length}`;$("title").textContent=r[2];$("msg").textContent=r[3];
 }
 function celebrate(){
   if(matchMedia("(prefers-reduced-motion:reduce)").matches)return;
@@ -158,7 +173,13 @@ function celebrate(){
 document.addEventListener("keydown",e=>{
   const n=+e.key;if(n>=1&&n<=4&&$("quiz").style.display!=="none"){const b=$("opts").children[n-1];if(b&&!b.disabled)b.click()}
 });
-$("again").onclick=()=>{i=0;score=0;$("score").textContent=0;setBar(0);$("res").style.display="none";$("quiz").style.display="block";show()};
+function restart(){
+  i=0;score=0;$("score").textContent=0;setBar(0);
+  $("res").style.display="none";$("quiz").style.display="block";
+  prepareQuiz();show();
+}
+$("again").onclick=restart;
+prepareQuiz();
 show();
 </script>
 </body>
