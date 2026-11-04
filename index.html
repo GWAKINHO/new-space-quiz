@@ -52,6 +52,8 @@ h1{font-size:20px;margin:0 0 16px;text-align:center}
 .top #count::before{content:"";display:inline-block;width:8px;height:8px;margin-right:8px;border-radius:50%;background:var(--ok);
   box-shadow:0 0 8px var(--ok);animation:blink 2s infinite}
 @keyframes blink{50%{opacity:.35}}
+.timer{font-variant-numeric:tabular-nums;white-space:nowrap}
+.timer.urgent{color:var(--bad)}
 .score b{color:var(--accent);font-size:15px;font-variant-numeric:tabular-nums}
 .bar{position:relative;height:10px;background:var(--accent-soft);border:1px solid var(--border);border-radius:3px;overflow:hidden;margin-bottom:20px}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#5b5bf0,#c15bf0,#f06b9a);transition:width .5s ease}
@@ -97,7 +99,7 @@ button.opt:disabled{cursor:default}
   <h1>🚀 우주 탐사 퀴즈</h1>
   <div class="card">
     <section id="quiz">
-      <div class="top"><span id="count">문제 1 / 10</span><span class="score">점수: <b id="score">0</b></span></div>
+      <div class="top"><span id="count">문제 1 / 10</span><span class="timer" id="timer" role="timer" aria-label="남은 시간" aria-live="off"></span><span class="score">점수: <b id="score">0</b></span></div>
       <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" id="barwrap"><i id="bar"></i></div>
       <p class="q" id="q"></p>
       <div class="opts" id="opts"></div>
@@ -136,6 +138,8 @@ const Q=[
 ];
 const $=id=>document.getElementById(id);
 let i=0,score=0,locked=false,quizQuestions=[],wrongAnswers=[];
+const TIME_LIMIT=15;
+let timerInterval=null,timeRemaining=TIME_LIMIT;
 const BEST_SCORE_KEY="spaceQuizBestScore";
 let bestScore=0;
 try{
@@ -159,19 +163,35 @@ function prepareQuiz(){
   shuffle(quizQuestions);
 }
 function show(){
+  stopTimer();
   locked=false;const [q,o]=quizQuestions[i];
   $("count").textContent=`문제 ${i+1} / ${quizQuestions.length}`;
   $("q").textContent=q;$("fb").textContent="";$("fb").className="fb";
   $("next").classList.remove("show");
   $("opts").innerHTML="";
   o.forEach((t,k)=>{const b=document.createElement("button");b.className="opt";b.textContent=t;b.onclick=()=>pick(k,b);$("opts").appendChild(b)});
+  startTimer();
 }
 function setBar(n){$("bar").style.width=n/quizQuestions.length*100+"%";$("barwrap").setAttribute("aria-valuenow",n)}
-function pick(k,btn){
+function stopTimer(){if(timerInterval!==null){clearInterval(timerInterval);timerInterval=null}}
+function updateTimer(){
+  $("timer").textContent=`남은 시간: ${timeRemaining}초`;
+  $("timer").classList.toggle("urgent",timeRemaining<=5);
+}
+function startTimer(){
+  timeRemaining=TIME_LIMIT;updateTimer();
+  timerInterval=setInterval(()=>{
+    timeRemaining--;updateTimer();
+    if(timeRemaining<=0){stopTimer();pick(null,null,true)}
+  },1000);
+}
+function pick(k,btn,timedOut=false){
   if(locked)return;locked=true;
+  stopTimer();
   const [,,a,why]=quizQuestions[i];const bs=[...$("opts").children];
   bs.forEach(b=>b.disabled=true);
-  if(k===a){score++;btn.classList.add("correct");$("fb").className="fb ok";$("fb").textContent="✅ 정답! "+why;}
+  if(timedOut){wrongAnswers.push({number:i+1,question:quizQuestions[i][0],selected:"시간 초과",correct:quizQuestions[i][1][a],explanation:why});bs[a].classList.add("correct");$("fb").className="fb bad";$("fb").textContent=`⏰ 시간 초과! 정답은 ${quizQuestions[i][1][a]}입니다. ${why}`;}
+  else if(k===a){score++;btn.classList.add("correct");$("fb").className="fb ok";$("fb").textContent="✅ 정답! "+why;}
   else{wrongAnswers.push({number:i+1,question:quizQuestions[i][0],selected:quizQuestions[i][1][k],correct:quizQuestions[i][1][a],explanation:why});btn.classList.add("wrong");bs[a].classList.add("correct");$("fb").className="fb bad";$("fb").textContent="❌ 아쉬워요. "+why;}
   $("score").textContent=score;setBar(i+1);
   $("next").textContent=i===quizQuestions.length-1?"결과 보기":"다음 문제";
@@ -222,6 +242,7 @@ document.addEventListener("keydown",e=>{
   const n=+e.key;if(n>=1&&n<=4&&$("quiz").style.display!=="none"){const b=$("opts").children[n-1];if(b&&!b.disabled)b.click()}
 });
 function restart(){
+  stopTimer();
   i=0;score=0;wrongAnswers=[];$("review").hidden=true;$("review-list").innerHTML="";
   $("score").textContent=0;setBar(0);
   $("res").style.display="none";$("quiz").style.display="block";
