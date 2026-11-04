@@ -8,12 +8,14 @@
 :root{
   --bg:#f3f5fb;--card:#fff;--text:#1b2033;--muted:#6a7189;--border:#dde1ee;
   --accent:#5b5bf0;--on-accent:#fff;--accent-soft:#ecebff;--ok:#1fa35c;--ok-bg:#dcf6e7;--bad:#e03e4e;--bad-bg:#fde3e6;
+  --ok-text:#0f6b3a;--bad-text:#b3202e;
   --shadow:0 10px 30px rgba(40,50,100,.12);
 }
 @media (prefers-color-scheme:dark){
   :root{
     --bg:#0b0e1c;--card:#151a30;--text:#e8eaf6;--muted:#9aa1c0;--border:#2a3154;
     --accent:#8c8cff;--on-accent:#0b0e1c;--accent-soft:#232a52;--ok:#3ddc84;--ok-bg:#123a28;--bad:#ff6b7a;--bad-bg:#431a24;
+    --ok-text:var(--ok);--bad-text:var(--bad);
     --shadow:0 10px 30px rgba(0,0,0,.5);
   }
 }
@@ -79,7 +81,7 @@ button.opt:disabled{cursor:default}
 .copy-button{margin-top:6px;font:inherit;font-weight:600;width:100%;padding:12px;border:1px solid var(--accent);border-radius:10px;background:var(--accent-soft);color:var(--text);cursor:pointer}
 .copy-button:hover{border-color:var(--accent);background:var(--card)}
 .copy-status{min-height:1.5em;margin:4px 0 8px;color:var(--muted);font-size:14px}
-.copy-status.success{color:var(--ok)}.copy-status.error{color:var(--bad)}
+.copy-status.success{color:var(--ok-text)}.copy-status.error{color:var(--bad-text)}
 .res{text-align:center;display:none}
 .emoji{font-size:64px;animation:bounce 1s infinite alternate}
 @keyframes bounce{to{transform:translateY(-8px) rotate(6deg)}}
