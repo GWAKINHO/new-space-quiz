@@ -79,6 +79,7 @@ button.opt:disabled{cursor:default}
 @keyframes bounce{to{transform:translateY(-8px) rotate(6deg)}}
 .big{font-size:34px;font-weight:700;margin:4px 0}
 .res p{color:var(--muted);margin:4px 0 18px}
+.record{color:var(--accent)!important;font-weight:600}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -95,10 +96,14 @@ button.opt:disabled{cursor:default}
       <button class="next" id="next"></button>
     </section>
     <section class="res" id="res">
-      <div class="emoji" id="emoji"></div>
-      <div class="big" id="final"></div>
-      <h2 id="title" style="font-size:18px;margin:0"></h2>
-      <p id="msg"></p>
+      <div class="result-summary" aria-live="polite" aria-atomic="true">
+        <div class="emoji" id="emoji"></div>
+        <div class="big" id="final"></div>
+        <h2 id="title" style="font-size:18px;margin:0"></h2>
+        <p id="msg"></p>
+        <p class="record" id="best"></p>
+        <p class="record" id="new-record" hidden>🎉 새 기록!</p>
+      </div>
       <button class="next show" id="again">다시 하기</button>
     </section>
   </div>
@@ -118,6 +123,13 @@ const Q=[
 ];
 const $=id=>document.getElementById(id);
 let i=0,score=0,locked=false;
+const BEST_SCORE_KEY="spaceQuizBestScore";
+let bestScore=0;
+try{
+  const saved=window.localStorage.getItem(BEST_SCORE_KEY);
+  const parsed=Number(saved);
+  if(saved!==null&&Number.isInteger(parsed)&&parsed>=0&&parsed<=Q.length)bestScore=parsed;
+}catch{}
 function show(){
   locked=false;const [q,o]=Q[i];
   $("count").textContent=`문제 ${i+1} / ${Q.length}`;
@@ -143,8 +155,15 @@ function finish(){
   const r=[[10,"🏆","임무 사령관!","완벽해요. 휴스턴이 자랑스러워합니다."],[8,"🚀","우주비행사 감","발사 준비 완료!"],[5,"🌍","궤도 안착 중","탄탄해요, 더 탐험해 보세요."],[0,"🛰️","아직 훈련 중","계속 탐험하고 다시 도전해 보세요."]].find(x=>score>=x[0]);
   $("res").classList.toggle("great",score>=8);
   if(score>=8)celebrate();
-  $("again").focus();
   $("emoji").textContent=r[1];$("final").textContent=`${score} / ${Q.length}`;$("title").textContent=r[2];$("msg").textContent=r[3];
+  const isNewRecord=score>bestScore;
+  if(isNewRecord){
+    bestScore=score;
+    try{window.localStorage.setItem(BEST_SCORE_KEY,String(bestScore))}catch{}
+  }
+  $("best").textContent=`최고 점수: ${bestScore} / ${Q.length}`;
+  $("new-record").hidden=!isNewRecord;
+  $("again").focus();
 }
 function celebrate(){
   if(matchMedia("(prefers-reduced-motion:reduce)").matches)return;
