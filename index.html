@@ -8,12 +8,14 @@
 :root{
   --bg:#f3f5fb;--card:#fff;--text:#1b2033;--muted:#6a7189;--border:#dde1ee;
   --accent:#5b5bf0;--on-accent:#fff;--accent-soft:#ecebff;--ok:#1fa35c;--ok-bg:#dcf6e7;--bad:#e03e4e;--bad-bg:#fde3e6;
+  --ok-text:#0f6b3a;--bad-text:#b3202e;
   --shadow:0 10px 30px rgba(40,50,100,.12);
 }
 @media (prefers-color-scheme:dark){
   :root{
     --bg:#0b0e1c;--card:#151a30;--text:#e8eaf6;--muted:#9aa1c0;--border:#2a3154;
     --accent:#8c8cff;--on-accent:#0b0e1c;--accent-soft:#232a52;--ok:#3ddc84;--ok-bg:#123a28;--bad:#ff6b7a;--bad-bg:#431a24;
+    --ok-text:var(--ok);--bad-text:var(--bad);
     --shadow:0 10px 30px rgba(0,0,0,.5);
   }
 }
@@ -64,7 +66,7 @@ h1{font-size:20px;margin:0 0 16px;text-align:center}
 button.opt{font:inherit;text-align:left;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);
   background:var(--card);color:var(--text);cursor:pointer;transition:transform .12s,border-color .12s,background .2s}
 button.opt:hover:not(:disabled){border-color:var(--accent);transform:translateY(-1px)}
-button.opt:focus-visible,.next:focus-visible{outline:3px solid var(--accent);outline-offset:3px;
+button.opt:focus-visible,.next:focus-visible,.copy-button:focus-visible{outline:3px solid var(--accent);outline-offset:3px;
   box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 25%,transparent)}
 button.opt:focus-visible{background:var(--accent-soft)}
 button.opt:disabled{cursor:default}
@@ -76,6 +78,10 @@ button.opt:disabled{cursor:default}
 .fb.ok{color:var(--ok)}.fb.bad{color:var(--bad)}
 .next{margin-top:6px;font:inherit;font-weight:600;width:100%;padding:12px;border:0;border-radius:10px;background:var(--accent);color:var(--on-accent);cursor:pointer;display:none}
 .next.show{display:block;animation:pop .3s}
+.copy-button{margin-top:6px;font:inherit;font-weight:600;width:100%;padding:12px;border:1px solid var(--accent);border-radius:10px;background:var(--accent-soft);color:var(--text);cursor:pointer}
+.copy-button:hover{border-color:var(--accent);background:var(--card)}
+.copy-status{min-height:1.5em;margin:4px 0 8px;color:var(--muted);font-size:14px}
+.copy-status.success{color:var(--ok-text)}.copy-status.error{color:var(--bad-text)}
 .res{text-align:center;display:none}
 .emoji{font-size:64px;animation:bounce 1s infinite alternate}
 @keyframes bounce{to{transform:translateY(-8px) rotate(6deg)}}
@@ -115,6 +121,8 @@ button.opt:disabled{cursor:default}
         <p class="record" id="best"></p>
         <p class="record" id="new-record" hidden>🎉 새 기록!</p>
       </div>
+      <button class="copy-button" id="copy-score" type="button">점수 복사</button>
+      <div class="copy-status" id="copy-status" aria-live="polite" aria-atomic="true"></div>
       <section class="review" id="review" aria-labelledby="review-title" hidden>
         <h3 id="review-title">틀린 문제 복습</h3>
         <ol class="review-list" id="review-list" aria-labelledby="review-title" tabindex="0"></ol>
@@ -229,6 +237,22 @@ function finish(){
   $("new-record").hidden=!isNewRecord;
   $("again").focus();
 }
+async function copyScore(){
+  const status=$("copy-status");
+  try{
+    if(!navigator.clipboard||typeof navigator.clipboard.writeText!=="function"){
+      status.className="copy-status error";
+      status.textContent="이 브라우저에서는 클립보드 복사를 지원하지 않아요.";
+      return;
+    }
+    await navigator.clipboard.writeText(`우주 탐사 퀴즈 ${score} / ${quizQuestions.length}점!`);
+    status.className="copy-status success";
+    status.textContent="복사했어요!";
+  }catch{
+    status.className="copy-status error";
+    status.textContent="복사하지 못했어요. 브라우저의 클립보드 권한을 확인해 주세요.";
+  }
+}
 function celebrate(){
   if(matchMedia("(prefers-reduced-motion:reduce)").matches)return;
   const c=document.createElement("div");c.className="confetti";c.setAttribute("aria-hidden","true");
@@ -244,11 +268,13 @@ document.addEventListener("keydown",e=>{
 function restart(){
   stopTimer();
   i=0;score=0;wrongAnswers=[];$("review").hidden=true;$("review-list").innerHTML="";
+  $("copy-status").className="copy-status";$("copy-status").textContent="";
   $("score").textContent=0;setBar(0);
   $("res").style.display="none";$("quiz").style.display="block";
   prepareQuiz();show();
 }
 $("again").onclick=restart;
+$("copy-score").onclick=copyScore;
 prepareQuiz();
 show();
 </script>
